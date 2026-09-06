@@ -20,11 +20,14 @@ import java.util.concurrent.TimeUnit;
 @Plugin(
         id = "herotab",
         name = "HeroTab",
-        version = "1.0.0",
-        description = "Tab list unifié et personnalisable pour tout le réseau HeroCraft",
+        version = "1.1.0",
+        description = "Tab list unifié, fluide et personnalisable pour tout le réseau HeroCraft (header/footer animés, intégration GradePlugin & FactionPlugin via MySQL, mode safe pour préserver les skins).",
         authors = {"HeroCraft"}
 )
 public class HeroTabPlugin {
+
+    /** Version exposée aux commandes et logs (doit rester synchronisée avec @Plugin et pom.xml). */
+    public static final String PLUGIN_VERSION = "1.1.0";
 
     private final ProxyServer server;
     private final Logger logger;
@@ -64,7 +67,7 @@ public class HeroTabPlugin {
 
         startUpdateTask();
 
-        logger.info("HeroTab activé — {} joueurs actuellement en ligne.", server.getPlayerCount());
+        logger.info("HeroTab v{} activé — {} joueurs actuellement en ligne.", PLUGIN_VERSION, server.getPlayerCount());
     }
 
     @Subscribe
@@ -135,7 +138,22 @@ public class HeroTabPlugin {
         return configManager;
     }
 
+    /** Version courante du plugin. */
+    public String getPluginVersion() {
+        return PLUGIN_VERSION;
+    }
+
     public TabListManager getTabListManager() {
         return tabListManager;
+    }
+
+    /** Accès au syncer GradePlugin (peut être null si l'intégration est désactivée). */
+    public GradeSync getGradeSync() {
+        return gradeSync;
+    }
+
+    /** Accès au syncer FactionPlugin (peut être null si l'intégration est désactivée). */
+    public FactionSync getFactionSync() {
+        return factionSync;
     }
 }

@@ -6,11 +6,11 @@
 
     <groupId>com.herocraft</groupId>
     <artifactId>herotab</artifactId>
-    <version>1.0.0</version>
+    <version>1.1.0</version>
     <packaging>jar</packaging>
 
     <name>HeroTab</name>
-    <description>Tab list unifié et personnalisable pour tout le réseau HeroCraft (proxy Velocity)</description>
+    <description>Tab list unifié, fluide et personnalisable pour tout le réseau HeroCraft (proxy Velocity) — header/footer animés, format joueur configurable, intégration GradePlugin &amp; FactionPlugin via MySQL, mode safe pour les skins.</description>
 
     <properties>
         <maven.compiler.source>17</maven.compiler.source>

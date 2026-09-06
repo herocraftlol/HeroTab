@@ -165,14 +165,37 @@ public class TabListManager {
         TabList tabList = viewer.getTabList();
 
         if (!cfg.reorderMode.equalsIgnoreCase("experimental")) {
-            // Mode "safe" (par défaut) : on ne touche JAMAIS à l'identité/au profil
-            // d'une entrée déjà créée par Velocity — donc jamais aux skins. L'ordre
-            // reste celui de connexion, mais rien ne peut casser l'affichage.
+            // Mode "safe" (par défaut) : on ne retire/recrée JAMAIS une entrée déjà
+            // présente (donc jamais de risque pour son skin) — seulement son texte
+            // et son ping. En revanche, si un joueur d'un autre sous-serveur manque
+            // encore dans ce tab (Velocity ne le propage pas toujours automatiquement
+            // selon la config), on l'AJOUTE pour garder la visibilité réseau entière ;
+            // ça n'affecte jamais les entrées déjà en place.
             for (Player target : online) {
-                tabList.getEntry(target.getUniqueId()).ifPresent(entry -> {
+                var existingEntry = tabList.getEntry(target.getUniqueId());
+                if (existingEntry.isPresent()) {
+                    TabListEntry entry = existingEntry.get();
+                    if (!entry.getProfile().getProperties().isEmpty()) {
+                        knownGoodProfiles.put(target.getUniqueId(), entry.getProfile());
+                    }
                     entry.setDisplayName(parse(formatPlayerEntry(viewer, target, cfg), cfg));
                     entry.setLatency((int) Math.max(0, target.getPing()));
-                });
+                } else {
+                    GameProfile profile = knownGoodProfiles.getOrDefault(target.getUniqueId(),
+                            new GameProfile(target.getUniqueId(), target.getUsername(), List.of()));
+                    try {
+                        tabList.addEntry(TabListEntry.builder()
+                                .tabList(tabList)
+                                .profile(profile)
+                                .displayName(parse(formatPlayerEntry(viewer, target, cfg), cfg))
+                                .latency((int) Math.max(0, target.getPing()))
+                                .gameMode(0)
+                                .build());
+                    } catch (Exception ex) {
+                        logger.warn("Impossible d'ajouter {} au tab de {} : {}",
+                                target.getUsername(), viewer.getUsername(), ex.getMessage());
+                    }
+                }
             }
             return;
         }

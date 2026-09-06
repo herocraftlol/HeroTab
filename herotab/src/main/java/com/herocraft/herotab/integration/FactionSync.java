@@ -86,4 +86,9 @@ public class FactionSync {
     public FactionInfo get(UUID uuid) {
         return cache.get(uuid);
     }
+
+    /** Nombre d'entrées actuellement en cache (utilisé par /herotab status). */
+    public int cacheSize() {
+        return cache.size();
+    }
 }
