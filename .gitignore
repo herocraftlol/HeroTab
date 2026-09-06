@@ -1,0 +1,13 @@
+target/
+*.class
+*.jar
+!herotab-*.jar
+*.iml
+.idea/
+.vscode/
+.classpath
+.project
+.settings/
+dependency-reduced-pom.xml
+*.log
+.DS_Store
