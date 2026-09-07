@@ -20,8 +20,8 @@ import java.util.concurrent.TimeUnit;
 @Plugin(
         id = "herotab",
         name = "HeroTab",
-        version = "1.3.0",
-        description = "Plugin Velocity pour HeroCraft — tab list unifié, fluide et personnalisable sur tout le réseau (header/footer animés, format joueur configurable, tag de faction dans le chat, intégration GradePlugin & FactionPlugin via MySQL, mode safe pour préserver les skins).",
+        version = "1.4.0",
+        description = "Tab list unifié pour HeroCraft (proxy Velocity) — header/footer animés, tri, intégration GradePlugin/FactionPlugin, tag de faction dans le chat, mode safe pour les skins.",
         authors = {"HeroCraft"}
 )
 public class HeroTabPlugin {

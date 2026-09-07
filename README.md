@@ -2,15 +2,15 @@
 
 # 🟦 HeroTab
 
-**Le tab list unifié, fluide et 100 % personnalisable du réseau HeroCraft.**
+**Le tab list unifié, fluide et 100 % personnalisable du réseau HeroCraft — avec tag de faction injecté dans le chat.**
 
-[![Version](https://img.shields.io/badge/version-1.3.0-00b4ff?style=flat-square)](#-nouveautés-de-la-v130)
+[![Version](https://img.shields.io/badge/version-1.4.0-00b4ff?style=flat-square)](#-nouveautés-de-la-v140)
 [![Velocity](https://img.shields.io/badge/Velocity-3.3.0%2B-blueviolet?style=flat-square)](#-compatibilité)
 [![Java](https://img.shields.io/badge/Java-17%2B-orange?style=flat-square)](#-compatibilité)
 [![License](https://img.shields.io/badge/license-MIT-success?style=flat-square)](LICENSE)
 [![Network](https://img.shields.io/badge/HeroCraft-Officiel-ff69b4?style=flat-square)](https://github.com/herocraftlol)
 
-Plugin **Velocity** qui remplace la liste vanilla des joueurs par une expérience cohérente sur **tout le réseau HeroCraft** — header/footer animés, format de ligne configurable, **tag de faction injecté automatiquement dans le chat**, intégration directe MySQL pour GradePlugin et FactionPlugin, et un mode `safe` qui préserve les skins (SkinRestorer, Bedrock, comptes premium) sans concession sur le rendu.
+Plugin **Velocity** qui remplace la liste vanilla des joueurs par une expérience cohérente sur **tout le réseau HeroCraft** — header/footer animés, format de ligne configurable, **tag de faction injecté automatiquement dans le chat** (en texte brut, compatible avec tous les anti-triche), intégration directe MySQL pour GradePlugin et FactionPlugin, et un mode `safe` qui préserve les skins (SkinRestorer, Bedrock, comptes premium) sans concession sur le rendu.
 
 </div>
 
@@ -24,8 +24,9 @@ Par défaut, l'onglet « joueurs » de Minecraft n'est pas pensé pour les rése
 - 😕 Les joueurs de BedWars et HungerGames se « mélangent » en vrac, sans distinction visuelle du serveur.
 - 😕 Les grades achetés sur GradePlugin (VIP, Premium…) n'apparaissent jamais dans le tab des autres serveurs.
 - 😕 Aucun header/footer animé, aucune info réseau, aucun branding central.
+- 😕 L'identité de faction d'un joueur disparaît dès qu'il parle ailleurs que sur Factions.
 
-**HeroTab corrige tout ça côté proxy** : un seul onglet « joueurs » cohérent pour tout le monde, configurable depuis un simple `config.yml`, sans rien installer côté Paper.
+**HeroTab corrige tout ça côté proxy** : un seul onglet « joueurs » cohérent pour tout le monde, configurable depuis un simple `config.yml`, sans rien installer côté Paper. Le tag de faction suit maintenant le joueur jusque dans le chat, sur **tout** le réseau.
 
 ---
 
@@ -58,13 +59,14 @@ HeroTab gère ça nativement :
 - **FactionPlugin** : lecture de la table `faction_tab_sync`. Le tag de faction (`%faction_tag%`) **n'est visible que sur le serveur Factions** — invisible partout ailleurs sur le réseau (pas de spoil inter-serveurs).
 - **Driver MySQL embarqué** : `mysql-connector-j` est *shadé* dans le JAR final. Un chargeur dédié (`JdbcDriverLoader`) contourne le problème d'isolation de classloaders de Velocity pour que les connexions fonctionnent depuis une tâche planifiée.
 
-### 💬 Tag de faction dans le chat (nouveau v1.3.0)
-Au-delà du tab, HeroTab peut désormais **préfixer automatiquement** chaque message de chat des joueurs membres d'une faction, **sur tout le réseau** — peu importe le sous-serveur sur lequel ils se trouvent. Fini le tag affiché seulement sur Factions : un joueur qui va jouer une partie de BedWars garde son identité de faction quand il parle.
+### 💬 Tag de faction dans le chat
+Au-delà du tab, HeroTab peut **préfixer automatiquement** chaque message de chat des joueurs membres d'une faction, **sur tout le réseau** — peu importe le sous-serveur sur lequel ils se trouvent. Fini le tag affiché seulement sur Factions : un joueur qui va jouer une partie de BedWars garde son identité de faction quand il parle.
 
 - Active / désactive globalement via `chat-faction-tag-enabled` (par défaut : `true`).
-- Format 100 % personnalisable avec `chat-faction-format` et placeholders dédiés (`%faction%`, `%faction_rank%`, `%faction_color%`, `%faction_icon%`, `%primary%`, `%secondary%`).
+- Format 100 % personnalisable avec `chat-faction-format` et placeholders dédiés (`%faction%`, `%faction_rank%`, `%faction_icon%`).
 - Lecture des mêmes données que pour le tab (table `faction_tab_sync`) — pas de coût supplémentaire, même `refresh-interval-seconds`.
 - Implémentation propre via `PlayerChatEvent.ChatResult.message(...)` — l'API officielle Velocity prévue pour ce cas d'usage, sans hook interne ni chat préempté.
+- **Tag en texte brut uniquement** — aucun code couleur dans le tag : la réécriture envoie un message plat au backend, qui le revalide comme s'il venait du client. Compatible avec **tous** les filtres anti-triche (pas de kick pour « caractères interdits dans le tchat »).
 
 ### 🧩 Autres commodités
 - **Regroupement de sous-serveurs** : `bedwars1`, `bedwars2`, `bedwars3` peuvent tous apparaître sous le label « BedWars » via `server-groups`.
@@ -94,7 +96,7 @@ cd HeroTab/herotab
 mvn clean package
 ```
 
-Le JAR shaded est disponible dans `herotab/target/herotab-1.3.0.jar`.
+Le JAR shaded est disponible dans `herotab/target/herotab-1.4.0.jar`.
 
 ---
 
@@ -185,9 +187,9 @@ server-groups:
   hungergames: "HungerGames"
   factions: "Factions"
 
-# Tag de faction dans le chat (nouveau v1.3.0) — fonctionne sur tout le réseau
+# Tag de faction dans le chat — texte brut, fonctionne sur tout le réseau
 chat-faction-tag-enabled: true
-chat-faction-format: "&7[%faction_color%%faction_icon%%faction%&7] &f"
+chat-faction-format: "[%faction_icon%%faction%] "
 ```
 
 📘 **Toutes les options sont documentées en commentaire dans le `config.yml` distribué avec le JAR** (`herotab/src/main/resources/config.yml`).
@@ -203,21 +205,37 @@ chat-faction-format: "&7[%faction_color%%faction_icon%%faction%&7] &f"
 | **Réseau** | `%network_address%` `%website_address%` `%primary%` `%secondary%` |
 | **Grade** | `%grade%` `%grade_prefix%` `%grade_suffix%` `%grade_color%` *(GradePlugin)* |
 | **Faction** | `%faction%` `%faction_rank%` `%faction_tag%` *(FactionPlugin)* |
+| **Chat faction** | `%faction%` `%faction_rank%` `%faction_icon%` *(sans couleur, texte brut)* |
 
-> `%faction%`, `%faction_rank%` et `%faction_tag%` ne sont remplis **que pour les joueurs actuellement sur le serveur `factions-server-name`** — ailleurs sur le réseau, ils restent vides (pas de spoil inter-serveurs).
+> `%faction%`, `%faction_rank%` et `%faction_tag%` (tab) ne sont remplis **que pour les joueurs actuellement sur le serveur `factions-server-name`** — ailleurs sur le réseau, ils restent vides (pas de spoil inter-serveurs).
 
 ---
 
-## 🆕 Nouveautés de la v1.3.0
+## 🆕 Nouveautés de la v1.4.0
+
+Cette version est un **correctif ciblé** du tag de faction dans le chat introduit en v1.3.0. Le tag fonctionne maintenant **partout** sans déclencher les filtres anti-triche des serveurs backend.
+
+### 🐛 Le bug corrigé
+
+Sur la v1.3.0, le `ChatManager` convertissait les codes couleur `&x` du `chat-faction-format` en `§x` avant de renvoyer le message au serveur backend. Le format par défaut contenait justement des couleurs (`&7[…&7] &f`), donc **chaque message d'un joueur en faction était préfixé avec des caractères `§`** que le backend — qui revalide le message comme s'il venait du client — voyait comme « caractères interdits dans le tchat » et kickait l'expéditeur. En pratique, le tag de faction rendait les joueurs injoignables sur la majorité des serveurs Paper.
+
+### ✅ Le correctif
+
+- **Aucun code couleur n'est jamais envoyé dans le chat.** `ChatManager.stripSpecialCharacters()` retire *tous* les `&x` et *tous* les `§` du texte injecté, ainsi que des noms de faction / icônes de rang si jamais ils en contenaient. Le tag est désormais strictement du texte plat.
+- **Format par défaut simplifié** : `chat-faction-format: "[%faction_icon%%faction%] "` — toujours lisible (`[★ MaFaction] Salut tout le monde !`), sans la moindre séquence `§` dedans.
+- **Placeholders `chat-faction-format` réduits** à ceux qui ne produiraient que du texte plat : `%faction%`, `%faction_rank%`, `%faction_icon%`. Les anciens `%faction_color%`, `%primary%`, `%secondary%` ont été retirés de la doc et de la substitution : ils continueraient à être **silencieusement filtrés**, donc autant ne pas les proposer.
+- **Documentation enrichie** : le commentaire Javadoc de `ChatManager`, le bloc `chat-faction-format` dans `config.yml` et la section « Tag de faction dans le chat » du README expliquent maintenant tous les trois la contrainte « texte brut uniquement, sinon kick anti-triche ».
+- 🆙 **Version bumpée à 1.4.0** dans `pom.xml` et l'annotation `@Plugin`.
+- 🔁 **Aucun changement côté config** : les `config.yml` v1.3.0 restent compatibles. La nouvelle valeur par défaut de `chat-faction-format` remplace simplement celle qui était injectée au premier lancement.
+
+### Nouveautés de la v1.3.0 (rappel)
 
 Cette version étend HeroTab **au-delà du tab** : le tag de faction suit désormais le joueur jusque dans ses messages de chat, où qu'il soit sur le réseau.
 
 - 💬 **Tag de faction dans le chat** : nouveau `ChatManager` qui préfixe automatiquement chaque message des joueurs membres d'une faction, sur **tout le réseau** (BedWars, HikaBrain, HungerGames, Factions…). Avant, le tag n'existait que sur le serveur Factions ; maintenant, un joueur qui fait un `/msg` ou un message global garde son identité de faction, peu importe où il joue.
-- 🎨 **Format 100 % personnalisable** : nouveau bloc dans `config.yml` (`chat-faction-tag-enabled` + `chat-faction-format`) avec 6 placeholders dédiés (`%faction%`, `%faction_rank%`, `%faction_color%`, `%faction_icon%`, `%primary%`, `%secondary%`). Couleur et icône du rang sont reprises automatiquement depuis `faction_tab_sync` — le rendu reste cohérent avec le tab.
+- 🎨 **Format 100 % personnalisable** : nouveau bloc dans `config.yml` (`chat-faction-tag-enabled` + `chat-faction-format`) avec placeholders dédiés (`%faction%`, `%faction_rank%`, `%faction_icon%`).
 - 🪝 **Implémentation propre** : tout passe par `PlayerChatEvent.ChatResult.message(...)` (l'API officielle Velocity prévue pour ce cas d'usage). Aucun hook interne, aucun chat préempté, aucune bidouille de packets.
 - ⚡ **Coût nul côté base** : `ChatManager` lit les mêmes données que `TabListManager` (cache en mémoire rafraîchi par `FactionSync`). Pas de requête MySQL supplémentaire par message.
-- 🆙 **Version bumpée à 1.3.0** dans `pom.xml` et l'annotation `@Plugin`.
-- 📝 **Description enrichie** : le `@Plugin` description mentionne désormais explicitement le tag de faction dans le chat.
 - 🔁 **100 % rétrocompatible** : si `chat-faction-tag-enabled: false` (ou si `factions-mysql` est désactivé), le comportement est strictement identique à la v1.2.0. Aucune migration nécessaire.
 
 ### Nouveautés de la v1.2.0 (rappel)
@@ -245,7 +263,7 @@ Cette version consolide l'expérience HeroTab en une ligne de release claire et 
 - 🎨 **Thème & MiniMessage** : un seul couple `theme-primary` / `theme-secondary` repeint toute la déco ; balises `<gradient>…</gradient>` acceptées.
 - 🔗 **GradePlugin + FactionPlugin** : lecture directe MySQL, sans dépendance plugin-side ni hook.
 - 🧩 **Regroupement de sous-serveurs** et **séparateur de groupe** en mode `SERVER_SELF_FIRST`.
-- ⚙️ **Reload à chaud** via `/herotab reload` — toutes les tâches planifiées sont recréées proprement.
+- ⚙️ **Reload à chaud** via `/herotab reload` — toutes les tâches planifiées sont recrées proprement.
 - 🐛 **Fix MySQL en classloader isolé** : `JdbcDriverLoader` charge explicitement `com.mysql.cj.jdbc.Driver` pour contourner le `No suitable driver found` des tâches schedulées sous Velocity.
 
 ---

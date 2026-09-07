@@ -19,6 +19,14 @@ import com.velocitypowered.api.proxy.Player;
  * PlayerChatEvent.ChatResult.message(...), l'API officielle de Velocity
  * prévue pour ce cas d'usage.
  *
+ * IMPORTANT — pas de couleur dans le tag : le message réécrit est un texte
+ * brut envoyé tel quel au serveur backend, qui le revalide comme s'il
+ * venait du client. Le caractère de code couleur (§) y est presque
+ * toujours traité comme un "caractère interdit" par les filtres anti-
+ * triche/anti-injection (un vrai client n'envoie jamais § depuis le
+ * clavier) et fait kicker le joueur. Le tag reste donc en texte simple,
+ * sans code couleur.
+ *
  * ATTENTION (chat sécurisé / 1.19.1+) : réécrire le contenu du message
  * change forcément sa signature cryptographique d'origine. Sur la grande
  * majorité des setups proxy + backend (Velocity + Paper avec la
@@ -60,36 +68,31 @@ public class ChatManager {
     }
 
     private String buildPrefix(FactionInfo faction, HeroTabConfig cfg) {
-        String color = faction.rankColor() != null && !faction.rankColor().isBlank() ? faction.rankColor() : "&7";
-        String icon = faction.rankIcon() != null && !faction.rankIcon().isBlank() ? faction.rankIcon() + " " : "";
-
         String raw = cfg.chatFactionFormat
                 .replace("%faction%", faction.factionName())
                 .replace("%faction_rank%", faction.rankName() != null ? faction.rankName() : "")
-                .replace("%faction_color%", color)
-                .replace("%faction_icon%", icon)
-                .replace("%primary%", cfg.themePrimary)
-                .replace("%secondary%", cfg.themeSecondary);
+                .replace("%faction_icon%", faction.rankIcon() != null && !faction.rankIcon().isBlank() ? faction.rankIcon() + " " : "");
 
-        return translateColors(raw);
+        return stripSpecialCharacters(raw);
     }
 
     /**
-     * Convertit les codes &amp; (ex: &amp;6) en codes couleur § réels : le message brut
-     * envoyé au serveur backend est un simple texte, pas un Component, donc les
-     * codes doivent déjà être sous leur forme finale pour s'afficher en couleur.
+     * Retire tout code couleur (&amp;x) et tout caractère § éventuellement présent
+     * (nom de faction, icône de rang...) : le message brut envoyé au serveur
+     * backend ne doit contenir que du texte normal, sous peine d'être rejeté par
+     * son filtre anti-triche comme "caractères interdits dans le tchat".
      */
-    private String translateColors(String text) {
+    private String stripSpecialCharacters(String text) {
         StringBuilder sb = new StringBuilder(text.length());
-        String valid = "0123456789abcdefklmnorABCDEFKLMNOR";
+        String colorCodes = "0123456789abcdefklmnorABCDEFKLMNOR";
         for (int i = 0; i < text.length(); i++) {
             char c = text.charAt(i);
-            if (c == '&' && i + 1 < text.length() && valid.indexOf(text.charAt(i + 1)) >= 0) {
-                sb.append('§').append(Character.toLowerCase(text.charAt(i + 1)));
-                i++;
-            } else {
-                sb.append(c);
+            if (c == '&' && i + 1 < text.length() && colorCodes.indexOf(text.charAt(i + 1)) >= 0) {
+                i++; // saute le code couleur entier (& + lettre/chiffre), n'écrit rien
+                continue;
             }
+            if (c == '§') continue; // au cas où un code couleur brut traînerait déjà dans la donnée source
+            sb.append(c);
         }
         return sb.toString();
     }
