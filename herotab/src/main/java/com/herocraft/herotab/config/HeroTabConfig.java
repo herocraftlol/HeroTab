@@ -116,6 +116,17 @@ public class HeroTabConfig {
     /** Connexion à la base "herocraft" de FactionPlugin (table faction_tab_sync). */
     public MySQLTarget factionsMysql = new MySQLTarget();
 
+    /** Si vrai, un tag de faction est ajouté devant chaque message de chat des joueurs qui en ont une. */
+    public boolean chatFactionTagEnabled = true;
+
+    /**
+     * Format du tag ajouté devant le message de chat (le message original du
+     * joueur est complété automatiquement juste après, tel quel).
+     * Placeholders : %faction% %faction_rank% %faction_color% %faction_icon% %primary% %secondary%
+     * Nécessite factions-mysql activé plus bas (mêmes identifiants que pour le tab).
+     */
+    public String chatFactionFormat = "&7[%faction_color%%faction_icon%%faction%&7] &f";
+
     /**
      * Un bloc de connexion MySQL en lecture seule, utilisé pour récupérer les
      * grades et/ou factions déjà stockés par les plugins Paper correspondants.
@@ -176,6 +187,9 @@ public class HeroTabConfig {
 
         if (raw.get("grades-mysql") != null) c.gradesMysql = MySQLTarget.fromMap(raw.get("grades-mysql"));
         if (raw.get("factions-mysql") != null) c.factionsMysql = MySQLTarget.fromMap(raw.get("factions-mysql"));
+
+        if (raw.get("chat-faction-tag-enabled") instanceof Boolean b) c.chatFactionTagEnabled = b;
+        if (raw.get("chat-faction-format") instanceof String s) c.chatFactionFormat = s;
 
         Object groups = raw.get("server-groups");
         if (groups instanceof Map<?, ?> gm) {
