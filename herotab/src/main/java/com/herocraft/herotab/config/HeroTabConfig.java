@@ -122,10 +122,14 @@ public class HeroTabConfig {
     /**
      * Format du tag ajouté devant le message de chat (le message original du
      * joueur est complété automatiquement juste après, tel quel).
-     * Placeholders : %faction% %faction_rank% %faction_color% %faction_icon% %primary% %secondary%
+     * Placeholders : %faction% %faction_rank% %faction_icon%
+     * PAS de couleur ici : le message est réécrit en texte brut et renvoyé au
+     * serveur backend, qui le revalide comme s'il venait du client — le
+     * caractère de code couleur (§) y est presque toujours traité comme un
+     * "caractère interdit" par les anti-triche et fait kicker le joueur.
      * Nécessite factions-mysql activé plus bas (mêmes identifiants que pour le tab).
      */
-    public String chatFactionFormat = "&7[%faction_color%%faction_icon%%faction%&7] &f";
+    public String chatFactionFormat = "[%faction%] ";
 
     /**
      * Un bloc de connexion MySQL en lecture seule, utilisé pour récupérer les
