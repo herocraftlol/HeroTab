@@ -23,9 +23,11 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -53,8 +55,17 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class TabListManager {
 
-    private static final UUID SPACER_UUID = UUID.nameUUIDFromBytes("herotab:group-spacer".getBytes(StandardCharsets.UTF_8));
-    private static final GameProfile SPACER_PROFILE = new GameProfile(SPACER_UUID, "herotab_spacer", List.of());
+    private static final int MAX_GROUP_SPACERS = 32;
+    private static final UUID[] SPACER_UUIDS = new UUID[MAX_GROUP_SPACERS];
+    private static final GameProfile[] SPACER_PROFILES = new GameProfile[MAX_GROUP_SPACERS];
+    /** Marqueur neutre utilisé uniquement pour détecter un changement d'ordre — jamais envoyé au client. */
+    private static final UUID ORDER_KEY_SPACER_MARKER = new UUID(0L, 0L);
+    static {
+        for (int i = 0; i < MAX_GROUP_SPACERS; i++) {
+            SPACER_UUIDS[i] = UUID.nameUUIDFromBytes(("herotab:group-spacer:" + i).getBytes(StandardCharsets.UTF_8));
+            SPACER_PROFILES[i] = new GameProfile(SPACER_UUIDS[i], "herotab_spacer_" + i, List.of());
+        }
+    }
 
     private final HeroTabPlugin plugin;
     private final ProxyServer server;
@@ -97,7 +108,15 @@ public class TabListManager {
 
     @Subscribe
     public void onServerConnected(ServerConnectedEvent event) {
-        updateAll();
+        // On force une relecture immédiate de MySQL (grades + factions) au lieu
+        // d'attendre le prochain cycle périodique (jusqu'à refresh-interval-seconds,
+        // 15s par défaut) — sinon un joueur qui vient de rejoindre/rejoindre une
+        // faction peut mettre jusqu'à 15s à voir son grade/sa faction apparaître.
+        server.getScheduler().buildTask(plugin, () -> {
+            if (gradeSync != null && gradeSync.isEnabled()) gradeSync.refresh();
+            if (factionSync != null && factionSync.isEnabled()) factionSync.refresh();
+            updateAll();
+        }).schedule();
     }
 
     @Subscribe
@@ -165,12 +184,25 @@ public class TabListManager {
         TabList tabList = viewer.getTabList();
 
         if (!cfg.reorderMode.equalsIgnoreCase("experimental")) {
-            // Mode "safe" (par défaut) : on ne retire/recrée JAMAIS une entrée déjà
-            // présente (donc jamais de risque pour son skin) — seulement son texte
-            // et son ping. En revanche, si un joueur d'un autre sous-serveur manque
-            // encore dans ce tab (Velocity ne le propage pas toujours automatiquement
-            // selon la config), on l'AJOUTE pour garder la visibilité réseau entière ;
-            // ça n'affecte jamais les entrées déjà en place.
+            // Mode "safe" (par défaut) : on ne retire/recrée JAMAIS une entrée d'un
+            // joueur toujours en ligne (donc jamais de risque pour son skin) —
+            // seulement son texte et son ping. En revanche, si un joueur d'un autre
+            // sous-serveur manque encore dans ce tab, on l'AJOUTE pour garder la
+            // visibilité réseau entière ; et surtout, on retire les entrées de
+            // joueurs qui ne sont PLUS en ligne — sinon elles restent affichées
+            // indéfiniment jusqu'au prochain changement de serveur du viewer.
+            // Retirer une entrée d'un joueur déjà parti n'a aucun risque pour les
+            // skins (il n'y a plus personne à afficher).
+            Set<UUID> onlineIds = new HashSet<>();
+            for (Player p : online) onlineIds.add(p.getUniqueId());
+
+            for (TabListEntry entry : new ArrayList<>(tabList.getEntries())) {
+                UUID id = entry.getProfile().getId();
+                if (!onlineIds.contains(id) && !isSpacerUuid(id)) {
+                    tabList.removeEntry(id);
+                }
+            }
+
             for (Player target : online) {
                 var existingEntry = tabList.getEntry(target.getUniqueId());
                 if (existingEntry.isPresent()) {
@@ -201,12 +233,12 @@ public class TabListManager {
         }
 
         List<Player> ordered = buildOrder(viewer, online, cfg);
-        int spacerAfterIndex = shouldInsertSpacer(viewer, ordered, cfg) ? computeSpacerIndex(viewer, ordered) : -1;
+        List<Integer> spacerAfterIndices = computeGroupSpacerIndices(ordered, cfg);
 
-        List<UUID> newOrderKey = new ArrayList<>(ordered.size() + 1);
+        List<UUID> newOrderKey = new ArrayList<>(ordered.size() + spacerAfterIndices.size());
         for (int i = 0; i < ordered.size(); i++) {
             newOrderKey.add(ordered.get(i).getUniqueId());
-            if (i == spacerAfterIndex) newOrderKey.add(SPACER_UUID);
+            if (spacerAfterIndices.contains(i)) newOrderKey.add(ORDER_KEY_SPACER_MARKER);
         }
 
         List<UUID> previousOrderKey = lastOrderPerViewer.get(viewer.getUniqueId());
@@ -240,8 +272,11 @@ public class TabListManager {
         for (Player target : online) {
             tabList.removeEntry(target.getUniqueId());
         }
-        tabList.removeEntry(SPACER_UUID);
+        for (UUID spacerUuid : SPACER_UUIDS) {
+            tabList.removeEntry(spacerUuid);
+        }
 
+        int spacerCount = 0;
         for (int i = 0; i < ordered.size(); i++) {
             Player target = ordered.get(i);
             TabListEntry old = existing.get(target.getUniqueId());
@@ -264,11 +299,11 @@ public class TabListManager {
                 logger.warn("Impossible d'ajouter l'entrée tab de {} : {}", target.getUsername(), ex.getMessage());
             }
 
-            if (i == spacerAfterIndex) {
+            if (spacerAfterIndices.contains(i) && spacerCount < MAX_GROUP_SPACERS) {
                 try {
                     tabList.addEntry(TabListEntry.builder()
                             .tabList(tabList)
-                            .profile(SPACER_PROFILE)
+                            .profile(SPACER_PROFILES[spacerCount])
                             .displayName(parse(replaceTheme(cfg.groupSpacerText, cfg), cfg))
                             .latency(0)
                             .gameMode(0)
@@ -276,6 +311,7 @@ public class TabListManager {
                 } catch (Exception ex) {
                     logger.warn("Impossible d'ajouter le séparateur de groupe : {}", ex.getMessage());
                 }
+                spacerCount++;
             }
         }
 
@@ -285,19 +321,24 @@ public class TabListManager {
     private String formatPlayerEntry(Player viewer, Player target, HeroTabConfig cfg) {
         String serverName = serverNameOf(target);
         String group = cfg.serverGroups.getOrDefault(serverName, serverName);
+        String serverColor = cfg.serverColors.getOrDefault(serverName, cfg.themePrimary);
         long ping = target.getPing();
 
         GradeInfo grade = gradeSync != null ? gradeSync.get(target.getUniqueId()) : null;
 
-        // La faction n'est affichée que si le joueur qui REGARDE le tab est
-        // lui-même sur le serveur Factions — ailleurs sur le réseau, ces
-        // placeholders restent vides, même si la cible a bien une faction.
+        // La faction n'est affichée que si le VIEWER et la CIBLE sont tous les
+        // deux sur le serveur Factions en ce moment — un joueur en faction mais
+        // actuellement sur un autre sous-serveur/monde n'affiche rien, et
+        // inversement un viewer ailleurs que sur Factions ne voit aucun tag.
         boolean viewerOnFactionsServer = serverNameOf(viewer).equalsIgnoreCase(cfg.factionsServerName);
-        FactionInfo faction = (viewerOnFactionsServer && factionSync != null) ? factionSync.get(target.getUniqueId()) : null;
+        boolean targetOnFactionsServer = serverNameOf(target).equalsIgnoreCase(cfg.factionsServerName);
+        FactionInfo faction = (viewerOnFactionsServer && targetOnFactionsServer && factionSync != null)
+                ? factionSync.get(target.getUniqueId()) : null;
 
         String text = cfg.playerFormat
                 .replace("%player%", target.getUsername())
                 .replace("%server%", serverName)
+                .replace("%server_color%", serverColor)
                 .replace("%group%", group)
                 .replace("%ping%", String.valueOf(Math.max(0, ping)))
                 .replace("%grade%", grade != null && grade.displayName() != null ? grade.displayName() : "")
@@ -349,26 +390,31 @@ public class TabListManager {
         return list;
     }
 
-    private boolean shouldInsertSpacer(Player viewer, List<Player> ordered, HeroTabConfig cfg) {
-        if (!cfg.sortMode.equalsIgnoreCase("SERVER_SELF_FIRST") || !cfg.groupSpacerEnabled) return false;
-        String viewerServer = serverNameOf(viewer);
-        boolean hasSelf = ordered.stream().anyMatch(p -> serverNameOf(p).equalsIgnoreCase(viewerServer));
-        boolean hasOther = ordered.stream().anyMatch(p -> !serverNameOf(p).equalsIgnoreCase(viewerServer));
-        return hasSelf && hasOther;
-    }
+    /**
+     * Renvoie les indices (dans "ordered") après lesquels insérer un séparateur —
+     * un à CHAQUE changement de serveur consécutif, pas seulement entre "toi" et
+     * "les autres". Ne s'applique qu'aux modes SERVER et SERVER_SELF_FIRST, où
+     * les joueurs d'un même serveur sont déjà regroupés de façon contiguë.
+     */
+    private List<Integer> computeGroupSpacerIndices(List<Player> ordered, HeroTabConfig cfg) {
+        List<Integer> indices = new ArrayList<>();
+        if (!cfg.groupSpacerEnabled) return indices;
+        String mode = cfg.sortMode.toUpperCase(Locale.ROOT);
+        if (!mode.equals("SERVER") && !mode.equals("SERVER_SELF_FIRST")) return indices;
 
-    /** Index (dans "ordered") après lequel insérer le séparateur : la dernière entrée de TON serveur. */
-    private int computeSpacerIndex(Player viewer, List<Player> ordered) {
-        String viewerServer = serverNameOf(viewer);
-        int lastSelfIndex = -1;
-        for (int i = 0; i < ordered.size(); i++) {
-            if (serverNameOf(ordered.get(i)).equalsIgnoreCase(viewerServer)) {
-                lastSelfIndex = i;
-            } else {
-                break; // le tri place déjà tout le groupe "self" en premier
+        for (int i = 0; i < ordered.size() - 1 && indices.size() < MAX_GROUP_SPACERS; i++) {
+            if (!serverNameOf(ordered.get(i)).equalsIgnoreCase(serverNameOf(ordered.get(i + 1)))) {
+                indices.add(i);
             }
         }
-        return lastSelfIndex;
+        return indices;
+    }
+
+    private static boolean isSpacerUuid(UUID id) {
+        for (UUID spacer : SPACER_UUIDS) {
+            if (spacer.equals(id)) return true;
+        }
+        return false;
     }
 
     private static String serverNameOf(Player p) {
@@ -380,6 +426,7 @@ public class TabListManager {
     private String applyPlaceholders(String text, Player viewer, HeroTabConfig cfg, int totalOnline, Map<String, Integer> countsByServer) {
         String serverName = serverNameOf(viewer);
         String group = cfg.serverGroups.getOrDefault(serverName, serverName);
+        String serverColor = cfg.serverColors.getOrDefault(serverName, cfg.themePrimary);
         int serverOnline = countsByServer.getOrDefault(serverName, 0);
 
         GradeInfo grade = gradeSync != null ? gradeSync.get(viewer.getUniqueId()) : null;
@@ -388,6 +435,7 @@ public class TabListManager {
         String replaced = text
                 .replace("%player%", viewer.getUsername())
                 .replace("%server%", serverName)
+                .replace("%server_color%", serverColor)
                 .replace("%group%", group)
                 .replace("%ping%", String.valueOf(Math.max(0, viewer.getPing())))
                 // %online% = total sur TOUT le réseau (tous les sous-serveurs confondus)

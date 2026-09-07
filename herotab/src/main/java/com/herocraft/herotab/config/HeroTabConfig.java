@@ -81,6 +81,14 @@ public class HeroTabConfig {
      */
     public Map<String, String> serverGroups = new LinkedHashMap<>();
 
+    /**
+     * Couleur individuelle par sous-serveur, utilisée par %server_color%.
+     * Une entrée absente retombe automatiquement sur %primary% — donc ajouter
+     * ou retirer un serveur ne casse jamais rien, il suffit d'ajouter une
+     * ligne ici si tu veux lui donner une couleur particulière.
+     */
+    public Map<String, String> serverColors = new LinkedHashMap<>();
+
     /** Si vrai, MiniMessage (&lt;red&gt;, &lt;bold&gt;...) est accepté en plus des codes &. */
     public boolean allowMiniMessage = true;
 
@@ -176,6 +184,15 @@ public class HeroTabConfig {
                 parsed.put(String.valueOf(e.getKey()), String.valueOf(e.getValue()));
             }
             c.serverGroups = parsed;
+        }
+
+        Object colors = raw.get("server-colors");
+        if (colors instanceof Map<?, ?> cm) {
+            Map<String, String> parsed = new LinkedHashMap<>();
+            for (Map.Entry<?, ?> e : cm.entrySet()) {
+                parsed.put(String.valueOf(e.getKey()), String.valueOf(e.getValue()));
+            }
+            c.serverColors = parsed;
         }
 
         return c;

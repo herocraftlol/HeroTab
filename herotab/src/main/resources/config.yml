@@ -29,13 +29,16 @@ network-address: "herocraft.servegame.com"
 website-address: "herocraft.servegame.com"
 
 # Nom EXACT (id backend, celui déclaré dans velocity.toml) du serveur Factions.
-# %faction%, %faction_rank% et %faction_tag% ne s'affichent que pour les
-# joueurs qui regardent le tab depuis CE serveur — invisibles partout ailleurs
-# sur le réseau, même si un autre joueur affiché a bien une faction.
+# %faction%, %faction_rank% et %faction_tag% ne s'affichent que si TOI (celui
+# qui regarde le tab) ET le joueur affiché êtes tous les deux sur ce serveur
+# en ce moment — un membre en faction mais actuellement sur un autre
+# sous-serveur/monde n'affiche rien pour lui, même vu depuis Factions.
 factions-server-name: "factions"
 
 # Format du nom affiché pour CHAQUE joueur dans la liste des joueurs
-# Placeholders : %player% %server% %group% %ping% %primary% %secondary%
+# Placeholders : %player% %server% %server_color% %group% %ping% %primary% %secondary%
+#   %server_color%   -> couleur individuelle du sous-serveur du joueur (voir server-colors
+#                        plus bas) ; retombe automatiquement sur %primary% si non définie
 #   %grade%          -> nom du grade GradePlugin le plus prioritaire (ex: "VIP")
 #   %grade_prefix%   -> préfixe brut du grade, déjà formaté avec couleur (ex: "&6[VIP] ")
 #   %grade_color%    -> code couleur brut du grade (ex: "&6")
@@ -45,17 +48,19 @@ factions-server-name: "factions"
 #   %ping%           -> ping en ms, en valeur (ex: "42")
 # Nécessite d'activer grades-mysql et/ou factions-mysql ci-dessous pour %grade%/%faction%.
 # Le " &8•&7 " et les espaces autour de %faction_tag% servent à aérer un peu la ligne.
-player-format: "&7[%primary%%server%&7] %grade_prefix%&f%player%%faction_tag% &8•&7 %ping%ms"
+player-format: "&7[%server_color%%server%&7] %grade_prefix%&f%player%%faction_tag% &8•&7 %ping%ms"
 
 # Ordre d'affichage des joueurs :
 #   ALPHABETICAL       - par pseudo
 #   PING                - par ping croissant
 #   SERVER              - regroupés par sous-serveur (ordre alphabétique des serveurs)
 #   SERVER_SELF_FIRST   - les joueurs de TON sous-serveur actuel d'abord, puis les
-#                         autres regroupés par serveur, avec un séparateur entre les
-#                         deux (voir group-spacer ci-dessous). C'est le mode par défaut :
+#                         autres regroupés par serveur. C'est le mode par défaut :
 #                         tu vois d'abord qui joue avec toi, puis le reste du réseau.
 #   NONE                - pas de tri, ordre de connexion
+# En modes SERVER et SERVER_SELF_FIRST, une petite ligne de séparation est
+# insérée à CHAQUE changement de serveur (voir group-spacer ci-dessous) —
+# donc pas seulement entre "toi" et "les autres", mais entre chaque groupe.
 # N'a d'effet que si reorder-mode est "experimental" (voir juste en dessous).
 sort-mode: "SERVER_SELF_FIRST"
 
@@ -69,13 +74,27 @@ sort-mode: "SERVER_SELF_FIRST"
 #         ça pose problème.
 reorder-mode: "safe"
 
-# Ligne décorative insérée entre "ton serveur" et "les autres" en mode SERVER_SELF_FIRST
+# Ligne décorative insérée entre chaque groupe de serveur (mode SERVER /
+# SERVER_SELF_FIRST + reorder-mode "experimental" uniquement)
 group-spacer-enabled: true
 group-spacer-text: "%secondary%&m▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬"
 
+# Couleur individuelle par sous-serveur, utilisée par %server_color% dans
+# player-format. Absent de la liste = retombe automatiquement sur theme-primary
+# — donc ajouter/retirer/renommer un serveur ne casse jamais rien, il suffit
+# d'ajouter une ligne ici si tu veux lui donner une couleur particulière.
+server-colors:
+  bedwars1: "&c"
+  bedwars2: "&c"
+  bedwars3: "&c"
+  hikabrain: "&a"
+  hungergames: "&6"
+  factions: "&d"
+  lobby: "&b"
+
 # En-tête du tab (une ligne = un élément de la liste, plusieurs lignes possibles)
 # Une ligne vide "" crée un peu d'espace entre les blocs.
-# Placeholders : %player% %server% %group% %ping% %online% %server_online% %max%
+# Placeholders : %player% %server% %server_color% %group% %ping% %online% %server_online% %max%
 #                %primary% %secondary% %network_address% %website_address%
 #   %online%        -> total de joueurs sur TOUT le réseau (tous sous-serveurs confondus)
 #   %server_online% -> joueurs uniquement sur le sous-serveur actuel du joueur qui regarde
