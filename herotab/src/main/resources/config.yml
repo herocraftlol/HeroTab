@@ -148,6 +148,20 @@ factions-mysql:
   password: "mot-de-passe"
   refresh-interval-seconds: 15
 
+# Si activé (et factions-mysql ci-dessus activé), ajoute un tag devant le
+# message de chat de chaque joueur qui a une faction — sur TOUT le réseau,
+# peu importe le sous-serveur sur lequel il parle.
+chat-faction-tag-enabled: true
+
+# Format du tag ajouté devant le message. Le message original du joueur est
+# complété automatiquement juste après, tel quel.
+# Placeholders : %faction% %faction_rank% %faction_color% %faction_icon%
+#                %primary% %secondary%
+#   %faction_color% -> couleur du rang de faction (ex: "&6"), ou &7 si absente
+#   %faction_icon%  -> icône du rang suivie d'un espace (ex: "★ "), vide si absente
+# Exemple de rendu : "[★ Or - MaFaction] Salut tout le monde !"
+chat-faction-format: "&7[%faction_color%%faction_icon%%faction%&7] &f"
+
 # Regroupe plusieurs sous-serveurs sous un même nom affiché (utile pour %group%)
 # ex: si tu as bedwars1, bedwars2, bedwars3 -> tous affichés "BedWars"
 server-groups:

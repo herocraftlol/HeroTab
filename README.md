@@ -4,13 +4,13 @@
 
 **Le tab list unifié, fluide et 100 % personnalisable du réseau HeroCraft.**
 
-[![Version](https://img.shields.io/badge/version-1.2.0-00b4ff?style=flat-square)](#-nouveautés-de-la-v120)
+[![Version](https://img.shields.io/badge/version-1.3.0-00b4ff?style=flat-square)](#-nouveautés-de-la-v130)
 [![Velocity](https://img.shields.io/badge/Velocity-3.3.0%2B-blueviolet?style=flat-square)](#-compatibilité)
 [![Java](https://img.shields.io/badge/Java-17%2B-orange?style=flat-square)](#-compatibilité)
 [![License](https://img.shields.io/badge/license-MIT-success?style=flat-square)](LICENSE)
 [![Network](https://img.shields.io/badge/HeroCraft-Officiel-ff69b4?style=flat-square)](https://github.com/herocraftlol)
 
-Plugin **Velocity** qui remplace la liste vanilla des joueurs par une expérience cohérente sur **tout le réseau HeroCraft** — header/footer animés, format de ligne configurable, intégration directe MySQL pour GradePlugin et FactionPlugin, et un mode `safe` qui préserve les skins (SkinRestorer, Bedrock, comptes premium) sans concession sur le rendu.
+Plugin **Velocity** qui remplace la liste vanilla des joueurs par une expérience cohérente sur **tout le réseau HeroCraft** — header/footer animés, format de ligne configurable, **tag de faction injecté automatiquement dans le chat**, intégration directe MySQL pour GradePlugin et FactionPlugin, et un mode `safe` qui préserve les skins (SkinRestorer, Bedrock, comptes premium) sans concession sur le rendu.
 
 </div>
 
@@ -58,6 +58,14 @@ HeroTab gère ça nativement :
 - **FactionPlugin** : lecture de la table `faction_tab_sync`. Le tag de faction (`%faction_tag%`) **n'est visible que sur le serveur Factions** — invisible partout ailleurs sur le réseau (pas de spoil inter-serveurs).
 - **Driver MySQL embarqué** : `mysql-connector-j` est *shadé* dans le JAR final. Un chargeur dédié (`JdbcDriverLoader`) contourne le problème d'isolation de classloaders de Velocity pour que les connexions fonctionnent depuis une tâche planifiée.
 
+### 💬 Tag de faction dans le chat (nouveau v1.3.0)
+Au-delà du tab, HeroTab peut désormais **préfixer automatiquement** chaque message de chat des joueurs membres d'une faction, **sur tout le réseau** — peu importe le sous-serveur sur lequel ils se trouvent. Fini le tag affiché seulement sur Factions : un joueur qui va jouer une partie de BedWars garde son identité de faction quand il parle.
+
+- Active / désactive globalement via `chat-faction-tag-enabled` (par défaut : `true`).
+- Format 100 % personnalisable avec `chat-faction-format` et placeholders dédiés (`%faction%`, `%faction_rank%`, `%faction_color%`, `%faction_icon%`, `%primary%`, `%secondary%`).
+- Lecture des mêmes données que pour le tab (table `faction_tab_sync`) — pas de coût supplémentaire, même `refresh-interval-seconds`.
+- Implémentation propre via `PlayerChatEvent.ChatResult.message(...)` — l'API officielle Velocity prévue pour ce cas d'usage, sans hook interne ni chat préempté.
+
 ### 🧩 Autres commodités
 - **Regroupement de sous-serveurs** : `bedwars1`, `bedwars2`, `bedwars3` peuvent tous apparaître sous le label « BedWars » via `server-groups`.
 - **Séparateur de groupe** : une ligne décorative configurable (`group-spacer-text`) insérée entre ton serveur et les autres en mode `SERVER_SELF_FIRST`.
@@ -86,7 +94,7 @@ cd HeroTab/herotab
 mvn clean package
 ```
 
-Le JAR shaded est disponible dans `herotab/target/herotab-1.2.0.jar`.
+Le JAR shaded est disponible dans `herotab/target/herotab-1.3.0.jar`.
 
 ---
 
@@ -102,6 +110,7 @@ HeroTab/
         ├── java/com/herocraft/herotab/
         │   ├── HeroTabPlugin.java          # Point d'entrée Velocity, scheduler, reload
         │   ├── TabListManager.java         # Cœur du plugin — header, footer, ordre, entrées
+        │   ├── ChatManager.java            # Injection du tag de faction dans le chat
         │   ├── command/HeroTabCommand.java # /herotab reload
         │   ├── config/
         │   │   ├── ConfigManager.java      # Lecture/écriture config.yml
@@ -175,6 +184,10 @@ server-groups:
   hikabrain: "HikaBrain"
   hungergames: "HungerGames"
   factions: "Factions"
+
+# Tag de faction dans le chat (nouveau v1.3.0) — fonctionne sur tout le réseau
+chat-faction-tag-enabled: true
+chat-faction-format: "&7[%faction_color%%faction_icon%%faction%&7] &f"
 ```
 
 📘 **Toutes les options sont documentées en commentaire dans le `config.yml` distribué avec le JAR** (`herotab/src/main/resources/config.yml`).
@@ -195,7 +208,19 @@ server-groups:
 
 ---
 
-## 🆕 Nouveautés de la v1.2.0
+## 🆕 Nouveautés de la v1.3.0
+
+Cette version étend HeroTab **au-delà du tab** : le tag de faction suit désormais le joueur jusque dans ses messages de chat, où qu'il soit sur le réseau.
+
+- 💬 **Tag de faction dans le chat** : nouveau `ChatManager` qui préfixe automatiquement chaque message des joueurs membres d'une faction, sur **tout le réseau** (BedWars, HikaBrain, HungerGames, Factions…). Avant, le tag n'existait que sur le serveur Factions ; maintenant, un joueur qui fait un `/msg` ou un message global garde son identité de faction, peu importe où il joue.
+- 🎨 **Format 100 % personnalisable** : nouveau bloc dans `config.yml` (`chat-faction-tag-enabled` + `chat-faction-format`) avec 6 placeholders dédiés (`%faction%`, `%faction_rank%`, `%faction_color%`, `%faction_icon%`, `%primary%`, `%secondary%`). Couleur et icône du rang sont reprises automatiquement depuis `faction_tab_sync` — le rendu reste cohérent avec le tab.
+- 🪝 **Implémentation propre** : tout passe par `PlayerChatEvent.ChatResult.message(...)` (l'API officielle Velocity prévue pour ce cas d'usage). Aucun hook interne, aucun chat préempté, aucune bidouille de packets.
+- ⚡ **Coût nul côté base** : `ChatManager` lit les mêmes données que `TabListManager` (cache en mémoire rafraîchi par `FactionSync`). Pas de requête MySQL supplémentaire par message.
+- 🆙 **Version bumpée à 1.3.0** dans `pom.xml` et l'annotation `@Plugin`.
+- 📝 **Description enrichie** : le `@Plugin` description mentionne désormais explicitement le tag de faction dans le chat.
+- 🔁 **100 % rétrocompatible** : si `chat-faction-tag-enabled: false` (ou si `factions-mysql` est désactivé), le comportement est strictement identique à la v1.2.0. Aucune migration nécessaire.
+
+### Nouveautés de la v1.2.0 (rappel)
 
 Cette version consolide l'expérience HeroTab en une ligne de release claire et facilite le déploiement sur le réseau :
 

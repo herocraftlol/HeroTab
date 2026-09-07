@@ -20,8 +20,8 @@ import java.util.concurrent.TimeUnit;
 @Plugin(
         id = "herotab",
         name = "HeroTab",
-        version = "1.2.0",
-        description = "Plugin Velocity pour HeroCraft — tab list unifié, fluide et personnalisable sur tout le réseau (header/footer animés, format joueur configurable, intégration GradePlugin & FactionPlugin via MySQL, mode safe pour préserver les skins).",
+        version = "1.3.0",
+        description = "Plugin Velocity pour HeroCraft — tab list unifié, fluide et personnalisable sur tout le réseau (header/footer animés, format joueur configurable, tag de faction dans le chat, intégration GradePlugin & FactionPlugin via MySQL, mode safe pour préserver les skins).",
         authors = {"HeroCraft"}
 )
 public class HeroTabPlugin {
@@ -32,6 +32,7 @@ public class HeroTabPlugin {
 
     private ConfigManager configManager;
     private TabListManager tabListManager;
+    private ChatManager chatManager;
     private ScheduledTask updateTask;
 
     private GradeSync gradeSync;
@@ -54,6 +55,7 @@ public class HeroTabPlugin {
         setupIntegrations();
 
         this.tabListManager = new TabListManager(this, server, configManager, logger, gradeSync, factionSync);
+        this.chatManager = new ChatManager(configManager, factionSync);
 
         server.getCommandManager().register(
                 server.getCommandManager().metaBuilder("herotab").aliases("htab").build(),
@@ -61,6 +63,7 @@ public class HeroTabPlugin {
         );
 
         server.getEventManager().register(this, tabListManager);
+        server.getEventManager().register(this, chatManager);
 
         startUpdateTask();
 
@@ -117,6 +120,7 @@ public class HeroTabPlugin {
         if (factionSyncTask != null) factionSyncTask.cancel();
         setupIntegrations();
         tabListManager.setIntegrations(gradeSync, factionSync);
+        chatManager.setFactionSync(factionSync);
 
         tabListManager.reloadAnimationState();
         startUpdateTask();
