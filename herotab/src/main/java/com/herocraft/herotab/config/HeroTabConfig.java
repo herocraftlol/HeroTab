@@ -116,8 +116,22 @@ public class HeroTabConfig {
     /** Connexion à la base "herocraft" de FactionPlugin (table faction_tab_sync). */
     public MySQLTarget factionsMysql = new MySQLTarget();
 
-    /** Si vrai, un tag de faction est ajouté devant chaque message de chat des joueurs qui en ont une. */
-    public boolean chatFactionTagEnabled = true;
+    /**
+     * Si vrai, un tag de faction est ajouté devant chaque message de chat des
+     * joueurs qui en ont une (rewrite du message brut envoyé au backend).
+     *
+     * DÉSACTIVÉ PAR DÉFAUT : sur un setup HeroCraft classique, FactionPlugin
+     * gère déjà ça lui-même, correctement, avec couleur — voir sa classe
+     * PlayerListener#onPlayerChat (AsyncPlayerChatEvent + setFormat()). C'est
+     * un vrai format serveur, jamais du texte brut réécrit, donc ça ne peut
+     * jamais déclencher de kick anti-triche, et ça ne s'affiche déjà que sur
+     * le serveur Factions puisque cet event ne se déclenche que là-bas.
+     * N'active ceci QUE si tu as un vrai chat relayé entre plusieurs
+     * sous-serveurs (auquel cas le formatage local de FactionPlugin ne
+     * traverse pas les autres serveurs) — et sache que, pour rester safe
+     * vis-à-vis des anti-triche, ce tag reste en texte simple, sans couleur.
+     */
+    public boolean chatFactionTagEnabled = false;
 
     /**
      * Format du tag ajouté devant le message de chat (le message original du
