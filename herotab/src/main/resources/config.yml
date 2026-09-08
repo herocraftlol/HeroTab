@@ -148,13 +148,22 @@ factions-mysql:
   password: "mot-de-passe"
   refresh-interval-seconds: 15
 
-# Si activé (et factions-mysql ci-dessus activé), ajoute un tag devant le
-# message de chat de chaque joueur qui a une faction — sur TOUT le réseau,
-# peu importe le sous-serveur sur lequel il parle.
-chat-faction-tag-enabled: true
+# Ajoute un tag devant le message de chat de chaque joueur qui a une faction.
+#
+# DÉSACTIVÉ PAR DÉFAUT : FactionPlugin le fait déjà lui-même, correctement,
+# AVEC couleur (voir sa classe PlayerListener#onPlayerChat) — c'est un vrai
+# format serveur (event.setFormat()), jamais du texte brut réécrit, donc ça
+# ne peut jamais déclencher de kick anti-triche ("Caractères interdits"), et
+# ça ne s'affiche déjà que sur le serveur Factions puisque cet event ne se
+# déclenche que là-bas. Inutile d'activer ceci sauf si tu as un vrai chat
+# relayé entre plusieurs sous-serveurs (le formatage local de FactionPlugin
+# ne traverse alors pas vers les autres serveurs).
+chat-faction-tag-enabled: false
 
 # Format du tag ajouté devant le message. Le message original du joueur est
-# complété automatiquement juste après, tel quel.
+# complété automatiquement juste après, tel quel. Ne s'applique QUE si le
+# joueur parle depuis factions-server-name (voir plus haut) — ailleurs
+# (lobby, minijeux...), rien n'est ajouté.
 # Placeholders : %faction% %faction_rank% %faction_icon%
 #   %faction_icon%  -> icône du rang suivie d'un espace (ex: "★ "), vide si absente
 # PAS de code couleur ici (&x) : le message est renvoyé en texte brut au

@@ -58,6 +58,14 @@ public class ChatManager {
         if (factionSync == null || !factionSync.isEnabled()) return;
 
         Player player = event.getPlayer();
+
+        // Ne s'applique QUE si le joueur parle depuis le serveur Factions —
+        // ailleurs (lobby, minijeux...), aucun tag n'est ajouté.
+        String currentServer = player.getCurrentServer()
+                .map(sc -> sc.getServerInfo().getName())
+                .orElse("");
+        if (!currentServer.equalsIgnoreCase(cfg.factionsServerName)) return;
+
         FactionInfo faction = factionSync.get(player.getUniqueId());
         if (faction == null || faction.factionName() == null || faction.factionName().isBlank()) return;
 
