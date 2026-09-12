@@ -1,0 +1,159 @@
+# ==========================================================
+#  HeroTab - configuration
+#  Ce plugin tourne sur le proxy Velocity : le tab qu'il
+#  affiche est donc le même quel que soit le sous-serveur
+#  Paper / le monde sur lequel se trouve chaque joueur.
+#
+#  Codes couleur : & classiques (&b, &7, &l...) + hex &#RRGGBB
+#  Si allow-minimessage: true, tu peux aussi écrire une ligne
+#  avec des balises MiniMessage, ex: "<gradient:#00c6ff:#0072ff>HeroCraft</gradient>"
+#  (ne mélange pas & et <tags> sur la même ligne)
+# ==========================================================
+
+# Intervalle entre deux rafraîchissements complets du tab (en ticks, 20 = 1 seconde)
+update-interval-ticks: 20
+
+# Vitesse de l'animation pour les lignes qui contiennent plusieurs frames séparées par '||'
+animation-interval-ticks: 20
+
+# ── Thème de couleurs ────────────────────────────────────────────────────────
+# Utilisées partout via %primary% et %secondary% (header, footer, format joueur,
+# séparateur de groupe). Change juste ces deux lignes pour changer toute la
+# décoration du tab d'un coup.
+theme-primary: "&b"   # bleu
+theme-secondary: "&e" # jaune
+
+# Adresse affichée dans le footer (IP/domaine de connexion au réseau)
+network-address: "herocraft.servegame.com"
+# Adresse du site web affichée dans le footer
+website-address: "herocraft.servegame.com"
+
+# Nom EXACT (id backend, celui déclaré dans velocity.toml) du serveur Factions.
+# %faction%, %faction_rank% et %faction_tag% ne s'affichent que si TOI (celui
+# qui regarde le tab) ET le joueur affiché êtes tous les deux sur ce serveur
+# en ce moment — un membre en faction mais actuellement sur un autre
+# sous-serveur/monde n'affiche rien pour lui, même vu depuis Factions.
+factions-server-name: "factions"
+
+# Format du nom affiché pour CHAQUE joueur dans la liste des joueurs
+# Placeholders : %player% %server% %server_color% %group% %ping% %primary% %secondary%
+#   %server_color%   -> couleur individuelle du sous-serveur du joueur (voir server-colors
+#                        plus bas) ; retombe automatiquement sur %primary% si non définie
+#   %grade%          -> nom du grade GradePlugin le plus prioritaire (ex: "VIP")
+#   %grade_prefix%   -> préfixe brut du grade, déjà formaté avec couleur (ex: "&6[VIP] ")
+#   %grade_color%    -> code couleur brut du grade (ex: "&6")
+#   %faction%        -> nom de la faction du joueur (vide si aucune)
+#   %faction_rank%   -> nom du rang de faction (ex: "Or")
+#   %faction_tag%    -> tag prêt à l'emploi " &7[&e★ Or - MaFaction&7]" (vide si pas de faction)
+#   %ping%           -> ping en ms, en valeur (ex: "42")
+# Nécessite d'activer grades-mysql et/ou factions-mysql ci-dessous pour %grade%/%faction%.
+# Le " &8•&7 " et les espaces autour de %faction_tag% servent à aérer un peu la ligne.
+player-format: "&7[%server_color%%server%&7] %grade_prefix%&f%player%%faction_tag% &8•&7 %ping%ms"
+
+# Ordre d'affichage des joueurs :
+#   ALPHABETICAL       - par pseudo
+#   PING                - par ping croissant
+#   SERVER              - regroupés par sous-serveur (ordre alphabétique des serveurs)
+#   SERVER_SELF_FIRST   - les joueurs de TON sous-serveur actuel d'abord, puis les
+#                         autres regroupés par serveur. C'est le mode par défaut :
+#                         tu vois d'abord qui joue avec toi, puis le reste du réseau.
+#   NONE                - pas de tri, ordre de connexion
+# En modes SERVER et SERVER_SELF_FIRST, une petite ligne de séparation est
+# insérée à CHAQUE changement de serveur (voir group-spacer ci-dessous) —
+# donc pas seulement entre "toi" et "les autres", mais entre chaque groupe.
+# N'a d'effet que si reorder-mode est "experimental" (voir juste en dessous).
+sort-mode: "SERVER_SELF_FIRST"
+
+# "safe" (par défaut) : ne touche jamais aux entrées existantes du tab (skin,
+#         identité) — seulement au texte et au ping. sort-mode/group-spacer
+#         n'ont alors aucun effet visuel, mais les skins sont garantis intacts.
+# "experimental" : active le vrai tri en retirant/recréant les entrées quand
+#         l'ordre change. Sur certains setups (SkinRestorer, Bedrock, voire
+#         des comptes premium classiques), ça peut empêcher les skins de
+#         s'afficher — teste avant de mettre en prod, repasse en "safe" si
+#         ça pose problème.
+reorder-mode: "safe"
+
+# Ligne décorative insérée entre chaque groupe de serveur (mode SERVER /
+# SERVER_SELF_FIRST + reorder-mode "experimental" uniquement)
+group-spacer-enabled: true
+group-spacer-text: "%secondary%&m▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬"
+
+# Couleur individuelle par sous-serveur, utilisée par %server_color% dans
+# player-format. Absent de la liste = retombe automatiquement sur theme-primary
+# — donc ajouter/retirer/renommer un serveur ne casse jamais rien, il suffit
+# d'ajouter une ligne ici si tu veux lui donner une couleur particulière.
+server-colors:
+  bedwars1: "&c"
+  bedwars2: "&c"
+  bedwars3: "&c"
+  hikabrain: "&a"
+  hungergames: "&6"
+  factions: "&d"
+  lobby: "&b"
+
+# En-tête du tab (une ligne = un élément de la liste, plusieurs lignes possibles)
+# Une ligne vide "" crée un peu d'espace entre les blocs.
+# Placeholders : %player% %server% %server_color% %group% %ping% %online% %server_online% %max%
+#                %primary% %secondary% %network_address% %website_address%
+#   %online%        -> total de joueurs sur TOUT le réseau (tous sous-serveurs confondus)
+#   %server_online% -> joueurs uniquement sur le sous-serveur actuel du joueur qui regarde
+# Exemple de ligne animée : "&b&lHeroCraft||&3&lHeroCraft||&9&lHeroCraft"
+header:
+  - "%primary%&m                                        "
+  - ""
+  - "%primary%&lHeroCraft %secondary%&l• %primary%Le réseau"
+  - "&7Réseau : %primary%%online%&7/%primary%%max% &8| &7Ici : %secondary%%server_online%"
+  - ""
+  - "%primary%&m                                        "
+
+# Pied de page du tab
+footer:
+  - "%secondary%&m                                        "
+  - ""
+  - "&7Serveur : %primary%%network_address%"
+  - "&7Site : %primary%%website_address%"
+  - ""
+  - "%secondary%&m                                        "
+
+# Autorise les balises MiniMessage (<red>, <bold>, <gradient:...>...) sur les lignes qui en contiennent
+allow-minimessage: true
+
+# ==========================================================
+#  Intégration GradePlugin — lecture directe de sa base MySQL
+#  (grades_db par défaut). Mêmes identifiants que dans le
+#  config.yml de GradePlugin sur tes serveurs Paper.
+# ==========================================================
+grades-mysql:
+  enabled: false
+  host: "127.0.0.1"
+  port: 3306
+  database: "grades_db"
+  user: "grades_user"
+  password: "mot-de-passe"
+  # Intervalle entre deux relectures complètes de la base, en secondes
+  refresh-interval-seconds: 15
+
+# ==========================================================
+#  Intégration FactionPlugin — lecture de la table
+#  faction_tab_sync (créée automatiquement par la classe
+#  FactionTabSync du plugin) dans sa base "herocraft".
+# ==========================================================
+factions-mysql:
+  enabled: false
+  host: "127.0.0.1"
+  port: 3306
+  database: "herocraft"
+  user: "herocraft_user"
+  password: "mot-de-passe"
+  refresh-interval-seconds: 15
+
+# Regroupe plusieurs sous-serveurs sous un même nom affiché (utile pour %group%)
+# ex: si tu as bedwars1, bedwars2, bedwars3 -> tous affichés "BedWars"
+server-groups:
+  bedwars1: "BedWars"
+  bedwars2: "BedWars"
+  bedwars3: "BedWars"
+  hikabrain: "HikaBrain"
+  hungergames: "HungerGames"
+  factions: "Factions"
