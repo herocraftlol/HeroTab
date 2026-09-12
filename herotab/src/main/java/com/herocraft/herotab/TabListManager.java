@@ -108,7 +108,12 @@ public class TabListManager {
 
     @Subscribe
     public void onServerConnected(ServerConnectedEvent event) {
-        // On force une relecture immédiate de MySQL (grades + factions) au lieu
+        // Visibilité d'abord, immédiatement et de façon synchrone : un joueur qui
+        // vient de se connecter (ex: arrivée au lobby) doit voir tout le monde
+        // tout de suite, sans attendre la relecture MySQL ci-dessous.
+        updateAll();
+
+        // On force ensuite une relecture immédiate de MySQL (grades + factions) au lieu
         // d'attendre le prochain cycle périodique (jusqu'à refresh-interval-seconds,
         // 15s par défaut) — sinon un joueur qui vient de rejoindre/rejoindre une
         // faction peut mettre jusqu'à 15s à voir son grade/sa faction apparaître.
