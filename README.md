@@ -4,7 +4,7 @@
 
 **Le tab list unifié, fluide et 100 % personnalisable du réseau HeroCraft.**
 
-[![Version](https://img.shields.io/badge/version-2.0.1-00b4ff?style=flat-square)](#-nouveautés-de-la-v201)
+[![Version](https://img.shields.io/badge/version-2.0.2-00b4ff?style=flat-square)](#-nouveautés-de-la-v202)
 [![Velocity](https://img.shields.io/badge/Velocity-3.3.0%2B-blueviolet?style=flat-square)](#-compatibilité)
 [![Java](https://img.shields.io/badge/Java-17%2B-orange?style=flat-square)](#-compatibilité)
 [![License](https://img.shields.io/badge/license-MIT-success?style=flat-square)](LICENSE)
@@ -72,15 +72,15 @@ HeroTab gère ça nativement :
 
 ---
 
-## 🆕 Nouveautés de la v2.0.1
+## 🆕 Nouveautés de la v2.0.2
 
-Cette version consolide la base technique du plugin et harmonise toutes les surfaces de version et de description. C'est une mise à jour « drop-in » : remplacez le JAR et `/herotab reload`, aucune migration de config n'est nécessaire.
+Cette version consolide le code source et harmonise une dernière fois toutes les surfaces de version et de description. C'est une mise à jour **« drop-in »** : remplacez le JAR et `/herotab reload`, aucune migration de config n'est nécessaire.
 
-- 🆙 **Version bumpée à 2.0.1** dans `pom.xml` et l'annotation `@Plugin` — toutes les surfaces de version (JAR, `velocity-plugin.json`, logs, panneau d'admin Velocity) restent synchronisées.
-- 📝 **Description enrichie et alignée** dans `pom.xml` et l'annotation `@Plugin` : un seul coup d'œil dans le listing Velocity ou le panneau d'admin suffit désormais à comprendre ce que fait le plugin (tab unifié, animations, intégration MySQL GradePlugin & FactionPlugin, mode safe pour les skins).
-- 🏷️ **Descriptions cohérentes** entre `pom.xml`, `velocity-plugin.json` et ce README — fini les incohérences d'un fichier à l'autre, l'admin retrouve la même description partout.
+- 🆙 **Version bumpée à 2.0.2** dans `pom.xml`, l'annotation `@Plugin` et le `velocity-plugin.json` généré — toutes les surfaces de version (JAR, panneau d'admin Velocity, logs) restent synchronisées.
+- 📝 **Description enrichie dans le code source** : la balise `<description>` de `pom.xml` et le champ `description` de `@Plugin` portent désormais la même description détaillée (tab unifié, animations, intégration MySQL GradePlugin & FactionPlugin, mode safe pour les skins, tag de faction limité au serveur Factions, JAR shaded avec dépendances embarquées, compatibilité Velocity 3.3.0+/Java 17+). Un seul coup d'œil dans le listing Velocity ou le panneau d'admin suffit désormais à comprendre ce que fait le plugin.
+- 🏷️ **Descriptions cohérentes d'un fichier à l'autre** : fini les incohérences entre ce qu'annonce `pom.xml`, ce que déclare `@Plugin`, ce qu'affiche `velocity-plugin.json` et ce qui est documenté dans ce README.
 - 📦 **JAR shaded reconstruit** : `mysql-connector-j` et `snakeyaml` (relocalisé sous `com.herocraft.herotab.libs.snakeyaml` pour éviter toute collision avec d'autres plugins) sont toujours embarqués. Aucune dépendance externe à gérer côté serveur.
-- 🔁 **100 % rétrocompatible** avec la v2.0.0 et toutes les versions précédentes : la structure du `config.yml` reste inchangée, le format des placeholders est identique, les tâches planifiées utilisent la même signature.
+- 🔁 **100 % rétrocompatible** avec la v2.0.1 et toutes les versions précédentes : la structure du `config.yml` reste inchangée, le format des placeholders est identique, les tâches planifiées utilisent la même signature. Aucune migration n'est nécessaire.
 
 ---
 
@@ -98,12 +98,12 @@ Cette version consolide la base technique du plugin et harmonise toutes les surf
 ## 🛠️ Compilation depuis les sources
 
 ```bash
-unzip HeroTab-2.0.1-source.zip
+unzip HeroTab-2.0.2-source.zip
 cd HeroTab/herotab
 mvn clean package
 ```
 
-Le JAR final sera dans `herotab/target/herotab-2.0.1.jar`.
+Le JAR final sera dans `herotab/target/herotab-2.0.2.jar`.
 
 ---
 

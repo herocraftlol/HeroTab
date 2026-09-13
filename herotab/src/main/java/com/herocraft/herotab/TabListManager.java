@@ -77,8 +77,6 @@ public class TabListManager {
 
     /** Dernier ordre appliqué pour chaque viewer (uuid des joueurs, + SPACER_UUID s'il y a un séparateur). */
     private final Map<UUID, List<UUID>> lastOrderPerViewer = new ConcurrentHashMap<>();
-    /** Dernier profil "complet" (avec skin) vu pour chaque joueur, en secours si une entrée doit être recréée. */
-    private final Map<UUID, GameProfile> knownGoodProfiles = new ConcurrentHashMap<>();
 
     private final LegacyComponentSerializer legacy = LegacyComponentSerializer.builder()
             .character('&')
@@ -127,7 +125,6 @@ public class TabListManager {
     @Subscribe
     public void onDisconnect(DisconnectEvent event) {
         lastOrderPerViewer.remove(event.getPlayer().getUniqueId());
-        knownGoodProfiles.remove(event.getPlayer().getUniqueId());
         // Léger délai pour laisser Velocity retirer le joueur de sa liste interne avant de rafraîchir.
         server.getScheduler().buildTask(plugin, this::updateAll)
                 .delay(java.time.Duration.ofMillis(150))
@@ -212,14 +209,14 @@ public class TabListManager {
                 var existingEntry = tabList.getEntry(target.getUniqueId());
                 if (existingEntry.isPresent()) {
                     TabListEntry entry = existingEntry.get();
-                    if (!entry.getProfile().getProperties().isEmpty()) {
-                        knownGoodProfiles.put(target.getUniqueId(), entry.getProfile());
-                    }
                     entry.setDisplayName(parse(formatPlayerEntry(viewer, target, cfg), cfg));
                     entry.setLatency((int) Math.max(0, target.getPing()));
                 } else {
-                    GameProfile profile = knownGoodProfiles.getOrDefault(target.getUniqueId(),
-                            new GameProfile(target.getUniqueId(), target.getUsername(), List.of()));
+                    // Profil pris DIRECTEMENT sur le joueur (déjà rempli par Velocity/
+                    // SkinRestorer dès la connexion) plutôt que deviné via un cache —
+                    // fiable à 100%, y compris pour le tout premier joueur à apparaître
+                    // dans ce tab, sans dépendre d'un timing entre plusieurs viewers.
+                    GameProfile profile = target.getGameProfile();
                     try {
                         tabList.addEntry(TabListEntry.builder()
                                 .tabList(tabList)
@@ -262,16 +259,12 @@ public class TabListManager {
         }
 
         // L'ordre a changé (arrivée/départ/changement de serveur) : on doit vraiment
-        // retirer puis ré-ajouter dans le bon ordre. On récupère d'abord le profil
-        // (avec skin) de chaque entrée existante pour ne rien perdre visuellement.
+        // retirer puis ré-ajouter dans le bon ordre. On garde le gamemode d'origine
+        // (icône spectateur/créatif) si connu, mais le PROFIL (skin) vient toujours
+        // directement de target.getGameProfile() — fiable, jamais de cache à côté.
         Map<UUID, TabListEntry> existing = new HashMap<>();
         for (TabListEntry e : tabList.getEntries()) {
             existing.put(e.getProfile().getId(), e);
-        }
-        for (TabListEntry e : existing.values()) {
-            if (!e.getProfile().getProperties().isEmpty()) {
-                knownGoodProfiles.put(e.getProfile().getId(), e.getProfile());
-            }
         }
 
         for (Player target : online) {
@@ -286,9 +279,7 @@ public class TabListManager {
             Player target = ordered.get(i);
             TabListEntry old = existing.get(target.getUniqueId());
             int gameMode = old != null ? old.getGameMode() : 0;
-            GameProfile profile = old != null ? old.getProfile()
-                    : knownGoodProfiles.getOrDefault(target.getUniqueId(),
-                        new GameProfile(target.getUniqueId(), target.getUsername(), List.of()));
+            GameProfile profile = target.getGameProfile();
 
             Component displayName = parse(formatPlayerEntry(viewer, target, cfg), cfg);
 
