@@ -117,6 +117,35 @@ public class HeroTabConfig {
     public MySQLTarget factionsMysql = new MySQLTarget();
 
     /**
+     * Si vrai, un tag de faction est ajouté devant chaque message de chat des
+     * joueurs qui en ont une (rewrite du message brut envoyé au backend).
+     *
+     * DÉSACTIVÉ PAR DÉFAUT : sur un setup HeroCraft classique, FactionPlugin
+     * gère déjà ça lui-même, correctement, avec couleur — voir sa classe
+     * PlayerListener#onPlayerChat (AsyncPlayerChatEvent + setFormat()). C'est
+     * un vrai format serveur, jamais du texte brut réécrit, donc ça ne peut
+     * jamais déclencher de kick anti-triche, et ça ne s'affiche déjà que sur
+     * le serveur Factions puisque cet event ne se déclenche que là-bas.
+     * N'active ceci QUE si tu as un vrai chat relayé entre plusieurs
+     * sous-serveurs (auquel cas le formatage local de FactionPlugin ne
+     * traverse pas les autres serveurs) — et sache que, pour rester safe
+     * vis-à-vis des anti-triche, ce tag reste en texte simple, sans couleur.
+     */
+    public boolean chatFactionTagEnabled = false;
+
+    /**
+     * Format du tag ajouté devant le message de chat (le message original du
+     * joueur est complété automatiquement juste après, tel quel).
+     * Placeholders : %faction% %faction_rank% %faction_icon%
+     * PAS de couleur ici : le message est réécrit en texte brut et renvoyé au
+     * serveur backend, qui le revalide comme s'il venait du client — le
+     * caractère de code couleur (§) y est presque toujours traité comme un
+     * "caractère interdit" par les anti-triche et fait kicker le joueur.
+     * Nécessite factions-mysql activé plus bas (mêmes identifiants que pour le tab).
+     */
+    public String chatFactionFormat = "[%faction%] ";
+
+    /**
      * Un bloc de connexion MySQL en lecture seule, utilisé pour récupérer les
      * grades et/ou factions déjà stockés par les plugins Paper correspondants.
      */
@@ -176,6 +205,9 @@ public class HeroTabConfig {
 
         if (raw.get("grades-mysql") != null) c.gradesMysql = MySQLTarget.fromMap(raw.get("grades-mysql"));
         if (raw.get("factions-mysql") != null) c.factionsMysql = MySQLTarget.fromMap(raw.get("factions-mysql"));
+
+        if (raw.get("chat-faction-tag-enabled") instanceof Boolean b) c.chatFactionTagEnabled = b;
+        if (raw.get("chat-faction-format") instanceof String s) c.chatFactionFormat = s;
 
         Object groups = raw.get("server-groups");
         if (groups instanceof Map<?, ?> gm) {
